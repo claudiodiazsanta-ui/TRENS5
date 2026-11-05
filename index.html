@@ -1,0 +1,433 @@
+<title>Test · Conducció i comandament FGC</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Concepte: quadre de comandament ferroviari. Blau de senyalització, verd/vermell/groc només per a l'estat. */
+:root {
+  --bg: #EDF0F5; --surface: #FFFFFF; --surface-2: #F4F6FA; --fg: #0F1B2D; --muted: #53607A; --line: #D3DAE6;
+  --accent: #0B3C7A; --accent-fg: #FFFFFF;
+  --ok: #14663A; --ok-bg: #DDF3E5; --bad: #A3261C; --bad-bg: #FBE3E0; --warn: #7A4F00; --warn-bg: #FFF0CC;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1420; --surface: #141F30; --surface-2: #1A2740; --fg: #E7ECF5; --muted: #9AA8BF; --line: #26354D;
+    --accent: #7FB0FF; --accent-fg: #07182F;
+    --ok: #6FD39A; --ok-bg: #123325; --bad: #FF8A80; --bad-bg: #3A1815; --warn: #F2C14E; --warn-bg: #3A2D0A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1420; --surface: #141F30; --surface-2: #1A2740; --fg: #E7ECF5; --muted: #9AA8BF; --line: #26354D;
+  --accent: #7FB0FF; --accent-fg: #07182F;
+  --ok: #6FD39A; --ok-bg: #123325; --bad: #FF8A80; --bad-bg: #3A1815; --warn: #F2C14E; --warn-bg: #3A2D0A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.brand small { font-family: var(--f-body); font-weight: 500; font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs { display: flex; gap: 4px; }
+.tab { border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 6px 12px; font-weight: 600; font-size: 14px; cursor: pointer; min-height: 36px; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-size: 34px; text-transform: uppercase; letter-spacing: .01em; }
+h2 { font-size: 24px; }
+h3 { font-size: 19px; }
+.lead { color: var(--muted); margin: 8px 0 0; max-width: 62ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+[hidden] { display: none !important; }
+.stack { display: grid; gap: 16px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.mode { display: block; position: relative; border: 2px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; background: var(--surface-2); }
+.mode input { position: absolute; opacity: 0; }
+.mode:has(input:checked) { border-color: var(--accent); background: var(--surface); }
+.mode:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mode b { font-family: var(--f-display); font-size: 20px; display: block; }
+.mode span { color: var(--muted); font-size: 14px; }
+select, .btn, .chip { min-height: 44px; }
+select { width: 100%; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); border-radius: 8px; padding: 8px 10px; font: inherit; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 44px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.btn { border: 2px solid var(--accent); background: var(--accent); color: var(--accent-fg); border-radius: 8px; padding: 10px 18px; font-weight: 600; font-size: 16px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn:focus-visible, .tab:focus-visible, .opt:focus-visible, .nav-n:focus-visible, .chip:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.grow { flex: 1 1 160px; }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+.q-meta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.q-n { font-family: var(--f-display); font-size: 22px; font-weight: 700; }
+.q-text { font-size: 19px; font-weight: 500; line-height: 1.4; margin: 12px 0 14px; }
+.opts { display: grid; gap: 10px; }
+.opt { display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%; background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 12px; min-height: 52px; cursor: pointer; }
+.opt-l { flex: none; width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line); font-family: var(--f-display); font-weight: 700; font-size: 17px; }
+.opt-t { min-width: 0; overflow-wrap: anywhere; padding-top: 2px; }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt.sel { border-color: var(--accent); background: var(--surface-2); }
+.opt.sel .opt-l { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.opt.ok { border-color: var(--ok); background: var(--ok-bg); }
+.opt.ok .opt-l { background: var(--ok); color: var(--surface); border-color: var(--ok); }
+.opt.bad { border-color: var(--bad); background: var(--bad-bg); }
+.opt.bad .opt-l { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.opt:disabled { cursor: default; color: var(--fg); }
+.fb { border-radius: 10px; padding: 14px; margin-top: 14px; border: 1px solid var(--line); background: var(--surface-2); }
+.fb.good { border-color: var(--ok); background: var(--ok-bg); }
+.fb.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.fb p { margin: 6px 0 0; }
+.where { margin-top: 10px; font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+.where b { color: var(--fg); }
+.navgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+.nav-n { min-height: 38px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.nav-n.done { background: var(--surface-2); border-color: var(--accent); }
+.nav-n.ok { background: var(--ok-bg); border-color: var(--ok); }
+.nav-n.bad { background: var(--bad-bg); border-color: var(--bad); }
+.nav-n.cur { outline: 3px solid var(--accent); outline-offset: 1px; }
+.confirm { border: 2px solid var(--warn); background: var(--warn-bg); border-radius: 10px; padding: 14px; }
+.score { display: grid; gap: 12px; }
+.grade { font-family: var(--f-display); font-weight: 700; font-size: 72px; line-height: 1; font-variant-numeric: tabular-nums; }
+.grade small { font-size: 28px; color: var(--muted); }
+.pill { display: inline-block; font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; }
+.pill.pass { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+.pill.fail { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.stat b { display: block; font-family: var(--f-display); font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bars { display: grid; gap: 10px; }
+.bar-h { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.bar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; margin-top: 4px; }
+.bar > i { display: block; height: 100%; background: var(--ok); }
+.bar.low > i { background: var(--bad); }
+.bar.mid > i { background: var(--warn); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.rev { display: grid; gap: 12px; }
+.rev-item { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--bad); border-radius: 10px; padding: 14px; }
+.rev-item.okk { border-left-color: var(--ok); }
+.rev-item.blk { border-left-color: var(--warn); }
+.rev-item .tag { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.rev-item .qt { font-weight: 600; margin: 4px 0 8px; }
+.ans { font-size: 15px; margin: 4px 0; overflow-wrap: anywhere; }
+.ans .yes { color: var(--ok); font-weight: 700; }
+.ans .no { color: var(--bad); font-weight: 700; }
+.note { font-size: 14px; color: var(--muted); }
+.note a { color: var(--accent); }
+.dev { display: grid; gap: 14px; }
+textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--fg); padding: 10px; font: inherit; resize: vertical; }
+.model { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.model ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.dev-ref { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .progress > i { transition: none; } }
+@media (max-width: 480px) { h1 { font-size: 28px; } .grade { font-size: 60px; } .q-text { font-size: 18px; } }
+@media (max-width: 480px) { .brand small { display: none; } }
+</style>
+
+<header class="top"><div class="top-in">
+  <div class="brand">Cap. 5 <small>Conducció i comandament · FGC</small></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-test" role="tab" aria-selected="true" type="button">Test</button>
+    <button class="tab" id="tab-dev" role="tab" aria-selected="false" type="button">Desenvolupament</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<section id="v-home" class="stack">
+  <div>
+    <h1>Simulacre de test</h1>
+    <p class="lead">Preguntes tipus test sobre la presentació «Capítol 5. Conducció i comandament» d'FGC. Mode examen (nota amb penalització) i mode estudi (resposta i explicació al moment), per blocs. A cada error, l'explicació i la diapositiva exacta on trobar-ho.</p>
+  </div>
+  <div class="card stack">
+    <div class="label">Mode</div>
+    <div class="modes">
+      <label class="mode"><input type="radio" name="mode" value="exam" checked><b>Examen</b><span>Sense pistes. Corregeix al final amb la nota real: encert +1, error −0,25, en blanc 0.</span></label>
+      <label class="mode"><input type="radio" name="mode" value="study"><b>Estudi</b><span>Respostes i explicació al moment, pregunta a pregunta.</span></label>
+    </div>
+    <div>
+      <label class="label" for="sel-bloc">Bloc de la presentació</label>
+      <select id="sel-bloc"></select>
+    </div>
+    <div><label class="label" for="sel-n">Quantes preguntes</label><select id="sel-n"><option value="0">Totes les del bloc</option><option value="50">50 a l'atzar</option><option value="25">25 a l'atzar</option><option value="10">10 a l'atzar</option></select></div>
+    <label class="check"><input type="checkbox" id="chk-shuffle" checked> Barrejar l'ordre de les preguntes</label>
+    <div class="row">
+      <button class="btn grow" id="btn-start" type="button">Començar</button>
+      <button class="btn ghost grow" id="btn-resume" type="button" hidden>Continuar el test</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Com es puntua</h3>
+    <p class="note" style="margin:8px 0 0">Mateix criteri que les bases de la convocatòria de maquinista d'FGC 2023: cada encert suma 1, cada error resta 0,25 i en blanc val 0. L'objectiu d'aquest simulacre és una nota de <b>7 sobre 10 o més</b>. Si dubtes entre dues opcions, pensa què pots justificar amb la presentació.</p>
+  </div>
+</section>
+
+<section id="v-quiz" class="stack" hidden>
+  <div class="card">
+    <div class="q-meta"><span class="q-n" id="q-count"></span><span class="label" id="q-sec"></span></div>
+    <div class="progress" style="margin-top:10px" aria-hidden="true"><i id="q-bar"></i></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="opts" id="q-opts"></div>
+    <div id="q-fb" hidden></div>
+  </div>
+  <div class="row">
+    <button class="btn ghost grow" id="btn-prev" type="button">Anterior</button>
+    <button class="btn grow" id="btn-next" type="button">Següent</button>
+  </div>
+  <div id="confirm" class="confirm" hidden>
+    <b id="confirm-t"></b>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" id="btn-confirm" type="button">Corregir ara</button>
+      <button class="btn ghost grow" id="btn-back" type="button">Seguir revisant</button>
+    </div>
+  </div>
+  <div class="card stack">
+    <div class="label">Navegador de preguntes</div>
+    <div class="navgrid" id="navgrid"></div>
+    <div class="row">
+      <button class="btn ghost grow" id="btn-finish" type="button">Finalitzar i corregir</button>
+      <button class="btn ghost grow" id="btn-home" type="button">Sortir al menú</button>
+    </div>
+  </div>
+</section>
+
+<section id="v-result" class="stack" hidden>
+  <div class="card score" id="res-card"></div>
+  <div class="card stack"><h3>Resultat per blocs</h3><div class="bars" id="res-bars"></div></div>
+  <div class="stack">
+    <h2>Revisió de respostes</h2>
+    <div class="chips" id="res-filter">
+      <button class="chip" data-f="fail" aria-pressed="true" type="button">Errors i en blanc</button>
+      <button class="chip" data-f="ok" aria-pressed="false" type="button">Encerts</button>
+      <button class="chip" data-f="all" aria-pressed="false" type="button">Totes</button>
+    </div>
+    <div class="rev" id="res-list"></div>
+  </div>
+  <div class="row">
+    <button class="btn grow" id="btn-retry" type="button">Repetir errors i en blanc</button>
+    <button class="btn ghost grow" id="btn-new" type="button">Nou test</button>
+  </div>
+  <p class="note">Les referències són números de diapositiva de la presentació «Capítol 5. Conducció i comandament».</p>
+</section>
+
+<section id="v-dev" class="stack" hidden>
+  <div>
+    <h1>Desenvolupament</h1>
+    <p class="lead">Escriu la teva resposta abans de mirar el model. Cada pregunta es valora sobre 10 punts segons els punts clau.</p>
+  </div>
+  <div class="dev" id="dev-list"></div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  var D = {"q": [{"sec": 3, "text": "Quins elements de la dotació serveixen per il·luminar en condicions de foscor i per prestar el senyal manual de parada?", "opts": ["Els fanals", "Els aparells de radiotelefonia", "Els banderins", "Les falques"], "ans": 0, "expl": "Els fanals serveixen per il·luminar en foscor i per prestar el senyal manual de parada; els banderins només serveixen per al senyal de parada.", "loc": "Cap. 5 · Diap. 66 · Armaris de la dotació dels trens"}, {"sec": 2, "text": "A quines UT correspon el selector de mode de marxa?", "opts": ["A les UT112 i 213", "A les UT113 i 114", "A les UT112, 113 i 114", "A les UT213 i 114"], "ans": 0, "expl": "La diapositiva 40 assigna el selector de mode de marxa (inversor) a les UT112-213, mentre que el commutador de sentit de marxa és de la UT113.", "loc": "Cap. 5 · Diap. 40 · Elements de conducció de les UT (tracció i frenada)"}, {"sec": 2, "text": "Què passa si el maquinista no compleix les ordres de velocitat de l'ATP?", "opts": ["El tren passarà a la marxa V+30", "El tren passarà a conducció ATO", "El tren frenarà amb fre moderable", "El tren frenarà d'urgència"], "ans": 3, "expl": "L'ATP dona ordres de velocitat de manera continuada i el maquinista les ha de complir; si no, el tren frena d'urgència.", "loc": "Cap. 5 · Diap. 49 · Panell del sistema ATP - ATO"}, {"sec": 3, "text": "Cada quant cal reconèixer els senyals acústics de l'home mort durant la marxa del tren?", "opts": ["Cada 10 segons", "Cada 120 segons", "Cada 60 segons", "Cada 30 segons"], "ans": 3, "expl": "La presència activa s'assegura amb una seqüència de senyals acústics que cal reconèixer cada 30 segons durant la marxa.", "loc": "Cap. 5 · Diap. 57 · Dispositiu de vetlla automàtica HOME MORT"}, {"sec": 3, "text": "Quina funció té el dispositiu de vetlla automàtica «home mort»?", "opts": ["Vetllar per la presència activa del maquinista", "Controlar que el tren no superi la velocitat màxima", "Impedir l'obertura de les portes durant la marxa", "Avisar el Centre de Comandament de les avaries"], "ans": 0, "expl": "L'home mort és un dispositiu de seguretat que vetlla per la presència activa del maquinista.", "loc": "Cap. 5 · Diap. 57 · Dispositiu de vetlla automàtica HOME MORT"}, {"sec": 1, "text": "Què indica la posició 0 d'un interruptor?", "opts": ["Que el sistema està connectat i en servei", "Que el sistema està anul·lat temporalment", "Que el sistema està en avaria o bloquejat", "Que el sistema està desconnectat"], "ans": 3, "expl": "En un interruptor, 0 vol dir desconnectat i 1 vol dir connectat.", "loc": "Cap. 5 · Diap. 18 · Elements de conducció i comandament · Interruptors"}, {"sec": 1, "text": "Quin d'aquests polsadors pot mantenir-se premut tot sol fins que interessi normalitzar-lo?", "opts": ["El d'anul·lació del llaç de fre", "El d'anul·lació de l'anul·lació de l'Home Mort", "El d'obertura dels miralls", "El d'anul·lació de la lluna tèrmica"], "ans": 3, "expl": "Els polsadors d'anul·lació de portes de CM1, far i lluna tèrmica es mantenen premuts tots sols; els altres tres s'han de mantenir accionats.", "loc": "Cap. 5 · Diap. 19 · Elements de conducció i comandament · Polsadors"}, {"sec": 3, "text": "En quina posició s'han de trobar els tèrmics durant la conducció normal del tren?", "opts": ["En posició ON (cap avall)", "En posició OFF (cap avall)", "En posició ON (cap amunt)", "En posició OFF (cap amunt)"], "ans": 2, "expl": "Durant la conducció normal els tèrmics han d'estar en posició ON, és a dir, cap amunt.", "loc": "Cap. 5 · Diap. 62 · Tèrmics"}, {"sec": 1, "text": "On es troba la gran majoria dels elements de conducció d'un tren?", "opts": ["A les cabines de conducció", "Als armaris del departament de viatgers", "A l'exterior del tren", "A les plataformes d'accés dels viatgers"], "ans": 0, "expl": "La presentació indica que la gran majoria dels elements de conducció són a les cabines de conducció; la resta, a l'exterior i als armaris del departament de viatgers.", "loc": "Cap. 5 · Diap. 5 · Situació dels elements de conducció"}, {"sec": 2, "text": "Quina funció té la clau de control a les UT112, 213, 113 i 114 quan es posa en la posició ON?", "opts": ["Tanca directament el disjuntor del tren", "Eleva directament el pantògraf del tren", "Connecta directament les bateries del tren", "Inicia la posada en servei automàtica"], "ans": 3, "expl": "A les UT112, 213, 113 i 114 la clau de control, en posar-la en ON, actua com a iniciadora del procés de posada en servei automàtic.", "loc": "Cap. 5 · Diap. 34 · Clau de control"}, {"sec": 3, "text": "Quins elements permeten que el tren obri o tanqui el pas d'aire de manera automàtica?", "opts": ["Els greixadors de pestanya", "Les claus de testera", "Els pressòstats", "Els tèrmics"], "ans": 2, "expl": "Per fer la funció automàticament el tren disposa de pressòstats; l'acció manual es fa amb aixetes.", "loc": "Cap. 5 · Diap. 63 · Aixetes d'aïllament d'algun circuit pneumàtic"}, {"sec": 1, "text": "Quin d'aquests polsadors cal mantenir accionat perquè el sistema continuï funcionant?", "opts": ["El d'anul·lació de la lluna tèrmica", "El de permís d'obertura de portes", "El d'anul·lació de portes de CM1", "El d'obertura dels miralls"], "ans": 3, "expl": "El polsador d'obertura dels miralls és un dels que s'han de mantenir accionats; els altres mantenen l'ordre o es mantenen premuts tots sols.", "loc": "Cap. 5 · Diap. 19 · Elements de conducció i comandament · Polsadors"}, {"sec": 4, "text": "Què són els enclavaments creuats?", "opts": ["Dispositius que registren les maniobres del maquinista per a poder-les analitzar després", "Dispositius que desconnecten el motor de tracció quan el tren supera la velocitat màxima", "Dispositius que fan que dos elements funcionin sempre alhora en la mateixa posició", "Dispositius que bloquegen un element mentre l'altre no és en una posició determinada"], "ans": 3, "expl": "Són dispositius que fan que un element no funcioni o no es pugui manipular mentre l'altre no es trobi en una posició determinada.", "loc": "Cap. 5 · Diap. 79 · Enclavaments creuats"}, {"sec": 1, "text": "On es troben, per exemple, els tèrmics situats a l'exterior del tren?", "opts": ["Dins del pupitre de conducció", "En cofres sota bastidor", "Darrere del seient del maquinista", "Al sostre del departament de viatgers"], "ans": 1, "expl": "Els tèrmics exteriors es troben en cofres sota bastidor.", "loc": "Cap. 5 · Diap. 5 · Situació dels elements de conducció"}, {"sec": 2, "text": "De quins sistemes informen el maquinista els instruments de control?", "opts": ["Enllumenat, comunicació i confort dels viatgers", "Climatització, megafonia i portes de les UT", "Producció d'electricitat, aire comprimit i tracció", "Seguretat, comunicació i informació per als viatgers"], "ans": 2, "expl": "Els instruments de control informen de la situació del sistema de producció d'electricitat, del d'aire comprimit i del de tracció.", "loc": "Cap. 5 · Diap. 39 · Instruments de control"}, {"sec": 4, "text": "Quins dos comandaments de fre es distingeixen al robinet de la locomotora 254?", "opts": ["Fre de mà i fre d'urgència", "Fre de disc i fre de blocs", "Fre indirecte i fre directe", "Fre dinàmic i fre d'estacionament"], "ans": 2, "expl": "Les imatges del robinet de fre de la 254 el mostren format pel fre indirecte i el fre directe.", "loc": "Cap. 5 · Diap. 76 · Robinet de fre"}, {"sec": 2, "text": "Quina funció té el polsador de desconnexió de bateries en la posada fora de servei d'una UT?", "opts": ["Baixar el pantògraf del tren", "Aturar la climatització del tren", "Desconnectar les bateries del tren", "Obrir el disjuntor del tren"], "ans": 2, "expl": "El mateix polsador permet connectar les bateries per a la posada en marxa i desconnectar-les per a la posada fora de servei.", "loc": "Cap. 5 · Diap. 33 · Polsador de connexió/desconnexió de bateries"}, {"sec": 4, "text": "Quan cal circular en tracció socors a les UT112 i UT213?", "opts": ["Quan el CTC ordena reduir la velocitat màxima de la línia", "Quan s'activa el fre d'estacionament de tota la unitat", "Quan hi ha avaria del transductor angular del manipulador", "Quan falla l'enllumenat interior de tots els cotxes de la unitat"], "ans": 2, "expl": "Un dels casos és l'avaria del transductor angular del manipulador: no es pot determinar la demanda de tracció o fre (l'altre és haver d'anul·lar un FLG propi).", "loc": "Cap. 5 · Diap. 84 · Conducció en condicions degradades"}, {"sec": 2, "text": "Quina ordre dona el polsador d'elevació del pantògraf?", "opts": ["Pujar el pantògraf perquè es connecti a la catenària", "Connectar les bateries perquè s'iniciï la posada en marxa", "Baixar el pantògraf perquè se separi de la catenària", "Tancar el disjuntor perquè passi el corrent al tren"], "ans": 0, "expl": "El polsador dona l'ordre de pujar el pantògraf perquè es connecti a la catenària; està situat als armaris de cabina.", "loc": "Cap. 5 · Diap. 35 · Polsador d'elevació del pantògraf"}, {"sec": 2, "text": "Quin element de seguretat és exclusiu de la UT213?", "opts": ["El panell del sistema ATP-ATO", "El panell repetidor del FAP", "La pantalla d'incidències Cosmos", "La pantalla d'avaries del MICAS"], "ans": 1, "expl": "La diapositiva 46 assigna el panell repetidor del FAP només a la UT213; MICAS és de les UT112-213, ATP-ATO de les UT112-113 i Cosmos de la UT113.", "loc": "Cap. 5 · Diap. 46 · Elements corresponents als sistemes de seguretat"}, {"sec": 4, "text": "Quines dues condicions cal complir per poder seleccionar l'ATP des del panell d'ATP-ATO?", "opts": ["Tren aturat i antenes d'ATP detectant els codis de via", "Tren circulant i antenes d'ATP detectant els codis de via", "Tren aturat i inversor de marxa en posició endavant", "Tren aturat i panell d'ATP-ATO apagat"], "ans": 0, "expl": "Cal que el tren estigui aturat i que les antenes d'ATP detectin els codis de via; si no, no es pot seleccionar l'ATP.", "loc": "Cap. 5 · Diap. 79 · Enclavaments creuats"}, {"sec": 1, "text": "Quin d'aquests elements és un exemple de commutador?", "opts": ["El de l'aire condicionat", "L'indicador de l'Home Mort", "El voltímetre de tensió de línia", "El polsador d'obertura dels miralls"], "ans": 0, "expl": "Els commutadors permeten triar entre diferents opcions; l'aire condicionat n'és un dels exemples de la diapositiva.", "loc": "Cap. 5 · Diap. 21 · Elements de conducció i comandament · Commutadors"}, {"sec": 1, "text": "Quin tipus d'indicador és el de l'Home Mort?", "opts": ["Només òptic", "Només acústic", "Òptic i acústic", "Pictograma de pantalla"], "ans": 2, "expl": "La diapositiva classifica l'Home Mort entre els indicadors òptics i acústics.", "loc": "Cap. 5 · Diap. 23 · Elements de conducció i comandament · Indicadors"}, {"sec": 4, "text": "Quin dels fets següents cal comunicar al CTC segons la reglamentació sobre la dotació dels trens?", "opts": ["Que la farmaciola es trobi desprecintada", "Que la farmaciola es trobi precintada", "Que la dotació estigui completa i en bon estat", "Que els estris de la dotació siguin nous"], "ans": 0, "expl": "Cal comunicar al CTC la manca d'elements de la dotació, els elements que no funcionin correctament i que la farmaciola estigui desprecintada.", "loc": "Cap. 5 · Diap. 69 · Armaris de la dotació dels trens"}, {"sec": 3, "text": "Quina és la funció de la pantalla AVARIES MICAS?", "opts": ["Mostrar les avaries del tren i recomanar actuacions", "Mostrar el consum d'energia i recomanar la velocitat de marxa", "Mostrar l'estat de les portes i anul·lar els llaços de seguretat", "Mostrar la velocitat objectiu i els indicadors del sistema ATP"], "ans": 0, "expl": "La pantalla permet visualitzar les possibles avaries del tren i ofereix recomanacions d'actuació al maquinista.", "loc": "Cap. 5 · Diap. 52 · Pantalla AVARIES MICAS"}, {"sec": 3, "text": "A la pantalla AVARIES MICAS, a quin grup d'avaries pertany el codi 44?", "opts": ["A la captació de corrent", "Al sistema pneumàtic", "A la cadena de tracció", "A la generació de baixa tensió"], "ans": 1, "expl": "A la pantalla, el codi 44 apareix a la fila «Sistema pneumàtic»; la captació de corrent, la cadena de tracció i la generació de baixa tensió són altres files amb altres codis.", "loc": "Cap. 5 · Diap. 53 · Pantalla AVARIES MICAS"}, {"sec": 3, "text": "Quin tipus d'element són els tèrmics?", "opts": ["Polsadors de frenada manual", "Commutadors de velocitat", "Interruptors automàtics", "Pressòstats d'aire comprimit"], "ans": 2, "expl": "La presentació defineix els tèrmics com a interruptors automàtics que poden desconnectar-se davant una sobreintensitat.", "loc": "Cap. 5 · Diap. 62 · Tèrmics"}, {"sec": 3, "text": "Quines columnes mostra la llista d'incidències de la pantalla INCIDÈNCIES COSMOS?", "opts": ["Codi, Unitat, Descripció i Cotxe", "Cotxe, Llaç, Descripció i Data", "Codi, Sev, Descripció i Data", "Codi, Sev, Cotxe i Velocitat"], "ans": 2, "expl": "La llista d'incidències s'organitza en les columnes Codi, Sev, Descripció i Data.", "loc": "Cap. 5 · Diap. 55 · Pantalla INCIDÈNCIES COSMOS"}, {"sec": 2, "text": "Quin fre es pot utilitzar en el Mode Socors de les UT113 i 114?", "opts": ["El fre moderable i el d'urgència", "Només el fre elèctric", "Només el fre d'urgència", "Només el fre moderable"], "ans": 2, "expl": "En Mode Socors (UT113/114) la velocitat màxima és de 30 km/h i no hi ha fre moderable: només fre d'urgència.", "loc": "Cap. 5 · Diap. 45 · Manipulador – Conducció Tracció Socors"}, {"sec": 2, "text": "Quins tipus de marxa es poden seleccionar amb el selector de mode de marxa?", "opts": ["Marxa normal, marxa V+10 i marxa V+30", "Marxa normal, marxa V+15 i marxa V+30", "Marxa normal, marxa V+5 i marxa V+50", "Marxa normal, marxa V+5 i marxa V+30"], "ans": 3, "expl": "La diapositiva 42 enumera tres tipus de marxa: normal, V+5 i V+30.", "loc": "Cap. 5 · Diap. 42 · Selector de mode de marxa (inversor)"}, {"sec": 3, "text": "Què passa quan s'obre un llaç de seguretat?", "opts": ["El tren s'atura només per l'aplicació del fre d'estacionament", "El tren manté la marxa i només avisa el maquinista", "Les portes s'obren i el tren redueix la velocitat", "El tren s'atura per frenada d'urgència o tall de tracció"], "ans": 3, "expl": "Quan s'obre un llaç de seguretat, el tren s'atura per frenada d'urgència o pel tall de la tracció.", "loc": "Cap. 5 · Diap. 58 · Polsadors d'anulació dels llaços"}, {"sec": 2, "text": "Quan es pot tancar el disjuntor amb el seu polsador de tancament?", "opts": ["Només un cop seleccionada la marxa V+5 del tren", "Només un cop desconnectades les bateries del tren", "Abans que el pantògraf es connecti a la catenària", "Un cop el pantògraf està connectat a la catenària"], "ans": 3, "expl": "El polsador permet tancar el disjuntor un cop el pantògraf està connectat a la catenària; així el corrent arriba als sistemes del tren.", "loc": "Cap. 5 · Diap. 37 · Polsador de tancament del disjuntor"}, {"sec": 4, "text": "En quin cotxe de la UT213 es troba l'armari de la dotació?", "opts": ["Al cotxe motor amb cabina 2 (MC2)", "Al cotxe remolc intermedi (RI)", "Al cotxe motor amb cabina 1 (MC1)", "A tots tres cotxes de la unitat"], "ans": 1, "expl": "L'esquema assenyala l'armari de dotació de la UT213 al cotxe remolc intermedi (RI, 283-05).", "loc": "Cap. 5 · Diap. 72 · Dotació de les UT213"}, {"sec": 4, "text": "A la locomotora 254, quina conseqüència té augmentar la velocitat del motor dièsel amb la maneta d'acceleració?", "opts": ["S'activa el fre elèctric de la locomotora", "Augmenta la velocitat de gir del generador elèctric", "Augmenta la pressió del circuit pneumàtic del fre", "Disminueix la velocitat de gir del generador elèctric"], "ans": 1, "expl": "Més velocitat del motor dièsel implica més velocitat de gir del generador elèctric i, així, més velocitat de la locomotora.", "loc": "Cap. 5 · Diap. 74 · Elements principals de la locomotora 254"}, {"sec": 2, "text": "Quan la posada en servei és automàtica, què només ha de fer el maquinista a les UT112, 213, 113 i 114?", "opts": ["Encendre l'enllumenat del passatge i l'aire condicionat", "Connectar les bateries i seleccionar la marxa normal del tren", "Elevar el pantògraf i tancar el disjuntor del tren", "Encendre l'enllumenat de cabina i activar els compressors d'aire"], "ans": 0, "expl": "Segons la diapositiva, el maquinista només ha d'encendre l'enllumenat del passatge i connectar l'aire condicionat del tren.", "loc": "Cap. 5 · Diap. 34 · Clau de control"}, {"sec": 1, "text": "Quin commutador de la UT112 permet triar entre les anul·lacions TSOC, ATP/ATO, FLG i AFS?", "opts": ["El commutador LLPA", "El commutador ANUL-AJE", "El commutador ANUL-PROP", "El commutador de l'aire condicionat"], "ans": 2, "expl": "A la imatge, el commutador ANUL-PROP presenta les posicions AFS, TSOC, ATP/ATO, FLG i NO; l'ANUL-AJE, en canvi, AFLGM, AFLGMI i AFLGRI.", "loc": "Cap. 5 · Diap. 21 · Elements de conducció i comandament · Commutadors"}, {"sec": 1, "text": "Quina dotació d'emergència pot haver-hi als armaris del departament de viatgers?", "opts": ["Una farmaciola i una llitera", "Un compressor i un pantògraf", "Uns voltímetres i uns esforcímetres", "Uns manòmetres i uns pressòstats"], "ans": 0, "expl": "Els armaris poden contenir una dotació d'emergència com ara farmaciola i llitera.", "loc": "Cap. 5 · Diap. 15 · Departament de viatgers · Armaris"}, {"sec": 3, "text": "Quan es pot anul·lar un llaç de seguretat obert?", "opts": ["Només amb autorització prèvia del Centre de Comandament", "Només després d'aturar el tren durant cinc minuts", "Només amb l'autorització del personal de l'estació següent", "Sempre que el maquinista ho cregui necessari per continuar"], "ans": 0, "expl": "Per continuar la marxa cal anul·lar el llaç afectat, però només amb la prèvia autorització del Centre de Comandament.", "loc": "Cap. 5 · Diap. 58 · Polsadors d'anulació dels llaços"}, {"sec": 4, "text": "Quina actuació és pròpia de la detecció i actuació en cas d'avaria?", "opts": ["Assegurar que ningú no autoritzat accedeixi al tren", "Comunicar les avaries detectades al CTC", "Falcar el tren i apagar la unitat", "Revisar l'estat de la caixa i de l'enllumenat"], "ans": 1, "expl": "En cas d'avaria cal observar els sistemes de diagnosi i els indicadors de cabina i comunicar al CTC les avaries detectades.", "loc": "Cap. 5 · Diap. 82 · Operacions fonamentals"}, {"sec": 3, "text": "Què passa si el maquinista no reconeix els senyals acústics de l'home mort?", "opts": ["S'activa el fre d'estacionament fins a l'estació següent", "S'anul·la el llaç de seguretat que ha quedat obert", "S'activa el fre de servei fins a reduir la velocitat", "S'activa el fre d'urgència per obertura del llaç de fre"], "ans": 3, "expl": "Si els senyals acústics no es reconeixen, s'activa el fre d'urgència per obertura del llaç de fre.", "loc": "Cap. 5 · Diap. 57 · Dispositiu de vetlla automàtica HOME MORT"}, {"sec": 1, "text": "Quin d'aquests aspectes del seient del maquinista es pot graduar amb un comandament?", "opts": ["La longitud del reposabraços", "La velocitat de gir del seient", "L'orientació del pupitre", "La proximitat al pupitre"], "ans": 3, "expl": "El seient té comandaments per graduar l'alçada, la inclinació del seient, la inclinació del respatller i la proximitat al pupitre.", "loc": "Cap. 5 · Diap. 13 · Les cabines de conducció · El seient del/la maquinista"}, {"sec": 4, "text": "Quin és l'ordre correcte de les operacions de la posada en servei d'una UT o locomotora?", "opts": ["Encendre, comprovar els sistemes i revisar l'estat general", "Encendre, revisar l'estat general i comprovar els sistemes", "Comprovar els sistemes, encendre i revisar l'estat general", "Revisar l'estat general, encendre i comprovar els sistemes"], "ans": 1, "expl": "La posada en servei és: 1) encendre la UT o locomotora, 2) revisió general de l'estat, 3) comprovació dels sistemes (portes, radiotelefonia, tracció i fre).", "loc": "Cap. 5 · Diap. 81 · Operacions fonamentals"}, {"sec": 4, "text": "En quin cas cal utilitzar el mode socors a les UT113 i UT114?", "opts": ["Quan fallen alhora els dos transductors analògics del manipulador", "Quan es perd la detecció dels codis de via per part de les antenes d'ATP", "Quan deixa de funcionar el sistema d'informació als viatgers de la unitat", "Quan s'ha d'anul·lar un FLG propi del cotxe de conducció de la unitat"], "ans": 0, "expl": "El mode socors s'usa, entre d'altres casos, en cas de fallada simultània dels dos transductors analògics del manipulador, que deixa la unitat sense demanda de tracció o fre.", "loc": "Cap. 5 · Diap. 85 · Mode socors UT113-114"}, {"sec": 2, "text": "Quina és la velocitat màxima en conducció de Tracció Socors (TSOC) a les UT112 i 213?", "opts": ["120 km/h", "60 km/h", "90 km/h", "30 km/h"], "ans": 2, "expl": "Per a les UT112/213, la TSOC té una velocitat màxima de 90 km/h i fre moderable.", "loc": "Cap. 5 · Diap. 45 · Manipulador – Conducció Tracció Socors"}, {"sec": 2, "text": "Què cal fer sempre si s'ha de circular en direcció contrària a l'habitual?", "opts": ["Conduir en tracció socors amb el manipulador", "Fer el canvi de cabina", "Posar el commutador de sentit en enrere", "Seleccionar la marxa V+5 amb el selector"], "ans": 1, "expl": "La diapositiva diu que en cap cas es circula marxa enrere i que, per anar en direcció contrària, sempre es fa el canvi de cabina.", "loc": "Cap. 5 · Diap. 41 · Commutador de sentit de marxa (inversor)"}, {"sec": 1, "text": "En quina unitat està graduat l'esforcímetre?", "opts": ["En kV", "En kN", "En bar", "En kW"], "ans": 1, "expl": "A la imatge, l'esforcímetre té l'escala en kN, amb fre i tracció; el voltímetre és en kV i el manòmetre en bar.", "loc": "Cap. 5 · Diap. 24 · Elements de conducció i comandament · Instruments"}, {"sec": 4, "text": "Quina d'aquestes actuacions forma part de la posada fora de servei d'una UT o locomotora?", "opts": ["Encendre la UT o la locomotora", "Demanar tracció al tren des de la cabina", "Revisar l'enllumenat interior i exterior", "Falcar el tren si fos necessari"], "ans": 3, "expl": "La posada fora de servei inclou apagar la unitat, falcar el tren si cal i assegurar que cap persona no autoritzada hi accedeixi.", "loc": "Cap. 5 · Diap. 82 · Operacions fonamentals"}, {"sec": 1, "text": "Quin dels equips següents pot contenir un armari de la cabina de conducció?", "opts": ["El compressor d'aire principal", "Els cilindres de fre de disc", "Els dipòsits d'aire auxiliars", "Els equips de FAP o d'ATP-ATO"], "ans": 3, "expl": "Els armaris de cabina poden contenir, entre altres, tèrmics, material reglamentari, equips de FAP o ATP-ATO i el panell de control del SIV; el compressor, els dipòsits i els cilindres de fre no hi consten.", "loc": "Cap. 5 · Diap. 11 · Les cabines de conducció · Els armaris de cabina"}, {"sec": 1, "text": "A quina funció del pupitre de conducció corresponen els llaços i les anul·lacions?", "opts": ["A la seguretat del tren", "A la posada en servei del tren", "Al confort del maquinista", "A la comunicació amb el comandament"], "ans": 0, "expl": "El pupitre agrupa la seguretat del tren (llaços, anul·lacions, etc.) entre les seves funcions; la comunicació és la radiotelefonia.", "loc": "Cap. 5 · Diap. 6 · Les cabines de conducció · El pupitre de conducció"}, {"sec": 4, "text": "Què intentarà fer el CTC si permet la circulació d'un tren amb la dotació mínima incompleta?", "opts": ["Reduir la velocitat màxima del tren fins arribar al taller", "Anul·lar el servei de totes les unitats de la mateixa línia", "Retirar el tren del servei o reposar els estris que falten", "Limitar la circulació del tren a les hores de menys afluència"], "ans": 2, "expl": "El CTC pot permetre la circulació, però intentarà retirar el tren del servei o reposar els estris que faltin tan aviat com sigui possible (ICR 10, 1.4.2).", "loc": "Cap. 5 · Diap. 69 · Armaris de la dotació dels trens"}, {"sec": 3, "text": "Quin efecte té sobre la frenada la sorra que tiren les sorreres?", "opts": ["Elimina la necessitat de frenar", "Redueix la distància de frenada", "Augmenta la distància de frenada", "Refreda els discos dels frens"], "ans": 1, "expl": "La sorra augmenta l'adherència roda-carril, redueix la distància de frenada i evita el patinatge quan la via està humida.", "loc": "Cap. 5 · Diap. 60 · Polsador d'accionament manual de les sorreres"}, {"sec": 4, "text": "Quines dues condicions cal complir per poder seleccionar la marxa enrere des de l'inversor de marxa?", "opts": ["Tren aturat i manipulador en posició de tracció màxima", "Tren totalment aturat i manipulador en posició de fre", "Tren totalment aturat i manipulador en posició 0", "Tren circulant a baixa velocitat i manipulador en posició 0"], "ans": 2, "expl": "Per canviar el sentit de la marxa cal una aturada total del tren i el manipulador en posició 0; si no, no es pot seleccionar la marxa enrere.", "loc": "Cap. 5 · Diap. 79 · Enclavaments creuats"}, {"sec": 1, "text": "Quina inscripció porta l'indicador TSOC de la cabina?", "opts": ["Home Mort", "Fre urgència", "Tracció socors", "Avaria de portes"], "ans": 2, "expl": "A la imatge, l'indicador TSOC porta la inscripció «Tracció socors»; l'indicador FU porta «Fre urgència» i l'indicador HM, «H.M.».", "loc": "Cap. 5 · Diap. 22 · Elements de conducció i comandament · Indicadors"}, {"sec": 2, "text": "Com es manté una velocitat prefixada pel maquinista amb el manipulador?", "opts": ["Retornant-lo sempre a la posició de repòs", "Deixant-lo fix en un punt del seu recorregut", "Desconnectant-lo del sistema de tracció", "Portant-lo a la posició de frenada d'urgència"], "ans": 1, "expl": "Deixant fix el manipulador en un punt del seu recorregut es manté la velocitat fins que el maquinista vulgui modificar-la.", "loc": "Cap. 5 · Diap. 43 · Manipulador"}, {"sec": 4, "text": "Quin tipus d'extintor consta a la dotació de les UT112?", "opts": ["Extintor de 9 kg d'escuma", "Extintor de 6 kg de pols ABC", "Extintor de 6 kg de diòxid de carboni", "Extintor de 2 kg de pols ABC"], "ans": 1, "expl": "La llegenda de la dotació indica «extintor 6 kg pols ABC».", "loc": "Cap. 5 · Diap. 70 · Dotació de les UT112"}, {"sec": 3, "text": "Per a què serveixen les falques homologades de la dotació del tren?", "opts": ["Per prestar el senyal manual de parada en cas necessari", "Per evacuar els viatgers fora del tren en cas necessari", "Per il·luminar la via en condicions de foscor", "Per assegurar la immobilitat del tren en cas necessari"], "ans": 3, "expl": "La dotació inclou falques homologades per assegurar la immobilitat del tren.", "loc": "Cap. 5 · Diap. 66 · Armaris de la dotació dels trens"}, {"sec": 4, "text": "Quins són els tres elements principals de comandament i conducció de la locomotora 254?", "opts": ["Maneta d'acceleració, robinet de fre i maneta de fre elèctric", "Manipulador de tracció i fre, inversor de marxa i panell ATP-ATO", "Pedal d'acceleració, palanca de canvi de marxes i fre de mà", "Panell ATP-ATO, inversor de marxa i bolet d'emergència"], "ans": 0, "expl": "Les locomotores tenen comandaments diferents dels de les UT; a la 254 els principals són la maneta d'acceleració del motor dièsel, el robinet de fre i la maneta de fre elèctric (fre dinàmic).", "loc": "Cap. 5 · Diap. 73 · Elements de comandament i conducció de la locomotora 254"}, {"sec": 3, "text": "Quin dels elements següents s'aïlla manualment mitjançant una aixeta?", "opts": ["El commutador de l'eixugavidres", "Les claus de testera", "Els tèrmics del quadre", "El polsador del bolet"], "ans": 1, "expl": "Les aixetes manuals actuen, entre d'altres, sobre miralls retrovisors, xiulets, greixadors de pestanya i claus de testera.", "loc": "Cap. 5 · Diap. 63 · Aixetes d'aïllament d'algun circuit pneumàtic"}, {"sec": 2, "text": "Quins instruments de control intervenen en la posada en servei i fora de servei d'una UT?", "opts": ["Voltímetre, cronòmetre, ohmímetre i esforcímetre", "Voltímetre, manòmetre, amperímetre i esforcímetre", "Voltímetre, termòmetre, amperímetre i pluviòmetre", "Taquímetre, manòmetre, ohmímetre i cronòmetre"], "ans": 1, "expl": "La diapositiva 32 indica com a instruments de control el voltímetre, el manòmetre, l'amperímetre i l'esforcímetre.", "loc": "Cap. 5 · Diap. 32 · Elements de posada en servei i fora de servei"}, {"sec": 1, "text": "Quina funció tenen els interruptors automàtics (tèrmics) dels armaris del departament de viatgers?", "opts": ["Actuar com a elements de monitoratge del funcionament del tren", "Actuar com a elements de seguretat dels circuits elèctrics", "Actuar com a elements de control dels frens del tren", "Actuar com a elements de climatització dels cotxes del tren"], "ans": 1, "expl": "La diapositiva indica que els tèrmics actuen com a elements de seguretat dels circuits elèctrics.", "loc": "Cap. 5 · Diap. 15 · Departament de viatgers · Armaris"}], "dev": [{"title": "Situació dels elements de conducció", "text": "Explica on es troben els elements de conducció d'un tren i quins equips s'hi poden trobar.", "ref": "Cap. 5 · Diap. 5–15", "pts": ["Es troben a les cabines de conducció (la gran majoria), a l'exterior del tren i als armaris del departament de viatgers", "Al pupitre hi ha els elements principals per a conducció (tracció i fre), posada en servei i posada fora de servei, seguretat, comunicació (radiotelefonia) i confort (seient)", "Els armaris de cabina poden contenir tèrmics, material reglamentari, equips de FAP o ATP-ATO i el panell de control del SIV", "A l'exterior hi ha aixetes d'aïllament dels circuits pneumàtics i tèrmics en cofres sota bastidor, a més d'elements pneumàtics com compressor, dipòsits, cilindres de fre, pressòstats i manòmetres", "Als armaris del departament de viatgers hi ha tèrmics (seguretat dels circuits elèctrics) i equips de monitoratge de climatització, informació al viatger i equips sota bastidor", "Al departament de viatgers hi ha també la dotació d'emergència (farmaciola, llitera)", "El seient es pot graduar en alçada, inclinació del seient, inclinació del respatller i proximitat al pupitre"]}, {"title": "Classificació dels elements de conducció", "text": "Descriu els quatre grups d'elements de conducció segons el seu funcionament i posa'n exemples.", "ref": "Cap. 5 · Diap. 17–23", "pts": ["Interruptors: connecten i desconnecten un sistema de manera permanent entre dues posicions (0 = desconnectat, 1 = connectat); exemple: magnetotèrmics", "Polsadors: donen una ordre concreta (connexió o anul·lació); alguns s'han de mantenir accionats (llaç de fre, anul·lació de l'Home Mort, obertura dels miralls)", "Alguns polsadors mantenen l'ordre fins que s'acciona un altre (permís d'obertura i tancament de portes)", "Alguns polsadors es mantenen premuts tots sols fins a normalitzar-los (anul·lació de portes de CM1, far, lluna tèrmica)", "Commutadors: permeten triar entre dues, tres o més opcions; exemples: anul·lacions pròpies i alienes de la UT112, desconnexió del pantògraf (clau verda), aire condicionat", "Indicadors: informen d'avaries, de la connexió o desconnexió d'un sistema i de les restriccions de velocitat; poden ser òptics, acústics o òptics i acústics (Home Mort), o pictogrames a MICAS i HERMES"]}, {"title": "Instruments, manipuladors i robinets", "text": "Explica quins instruments informen el maquinista dels circuits principals i com es fan les demandes de tracció i de fre amb manipulador o amb robinets.", "ref": "Cap. 5 · Diap. 24–27", "pts": ["Els instruments permeten conèixer la situació dels circuits principals, elèctric i pneumàtic", "El voltímetre indica la tensió de línia en kV", "El manòmetre indica la pressió en bar", "L'esforcímetre indica l'esforç de fre i de tracció en kN", "El manipulador permet fer les demandes de tracció i de fre des d'un únic comandament", "Amb robinets hi ha elements diferenciats: accelerador per a la tracció i robinet de fre per al fre", "Els manipuladors apareixen a les UT112-213 i a les UT113-114; la cabina de robinets mostra fre indirecte, fre directe i Home Mort"]}, {"title": "Posada en servei d'una UT", "text": "Explica quins elements intervenen en la posada en servei i fora de servei d'una unitat de tren i quina funció té cadascun.", "ref": "Cap. 5 · Diap. 31-39", "pts": ["Elements: polsador de connexió/desconnexió de bateries, clau de control, polsador d'elevació del pantògraf, polsador de tancament del disjuntor i instruments de control", "El polsador de bateries les connecta per a la posada en marxa i les desconnecta per a la posada fora de servei", "La clau de control activa la resta de polsadors; en ON inicia la posada en servei automàtic a les UT112, 213, 113 i 114", "En la posada en servei automàtic el maquinista només encén l'enllumenat del passatge i connecta l'aire condicionat", "El polsador d'elevació puja el pantògraf perquè es connecti a la catenària (armaris de cabina)", "El disjuntor es tanca un cop el pantògraf és a la catenària i deixa passar el corrent als sistemes del tren", "Instruments (voltímetre, manòmetre, amperímetre, esforcímetre): informen de producció d'electricitat, aire comprimit i tracció"]}, {"title": "Elements de conducció de les UT", "text": "Descriu els elements de conducció de les UT (tracció i frenada): commutador de sentit, selector de mode de marxa i manipulador.", "ref": "Cap. 5 · Diap. 40-45", "pts": ["Tres elements: commutador de sentit de marxa (UT113), selector de mode de marxa (UT112-213) i manipulador", "El commutador permet canviar el sentit (davant o enrere), però en cap cas es circula marxa enrere, per evitar accidents amb persones o obstacles", "Per circular en direcció contrària a l'habitual sempre es fa el canvi de cabina", "El selector permet tres marxes: normal (ATP-ATO-FAP), V+5 i V+30", "El manipulador dona les ordres de tracció i de frenada i permet mantenir una velocitat prefixada deixant-lo fix en un punt del recorregut", "TSOC (UT112/213): 90 km/h màxim i fre moderable", "Mode Socors (UT113/114): 30 km/h màxim, sense fre moderable i només fre d'urgència"]}, {"title": "Elements dels sistemes de seguretat", "text": "Explica quins elements corresponen als sistemes de seguretat d'una UT i descriu el funcionament dels sistemes FAP, ATP i ATO.", "ref": "Cap. 5 · Diap. 46-50", "pts": ["Panell repetidor del FAP (UT213), panell ATP-ATO (UT112-113), pantalla d'avaries MICAS (UT112-213), pantalla d'incidències COSMOS (UT113)", "Altres elements: polsador de frenada d'urgència (bolet), dispositiu de vetlla automàtica HOME MORT i polsadors d'anulació dels llaços", "El panell repetidor del FAP rep la informació dels captadors FAP i n'informa el maquinista, que ha de confirmar l'assabentat", "ATP (Automatic Train Protection): dona ordres de velocitat a bord de manera continuada", "El maquinista ha de complir les ordres de l'ATP; si no, el tren frena d'urgència", "ATO (Automatic Train Operation): conducció totalment automàtica de la UT", "Amb l'ATO el maquinista només condueix en cas d'avaria del sistema o en maniobres"]}, {"title": "Elements de seguretat de la cabina", "text": "Explica el funcionament del bolet, del dispositiu d'home mort i dels polsadors d'anulació dels llaços.", "ref": "Cap. 5 · Diap. 56–58", "pts": ["El bolet és un polsador amb forma de bolet que provoca la frenada d'urgència de la unitat o locomotora", "En prémer el bolet sona un senyal acústic a la cabina on s'ha utilitzat", "L'home mort vetlla per la presència activa del maquinista", "Cal reconèixer una seqüència de senyals acústics cada 30 segons durant la marxa", "Si no es reconeixen, s'activa el fre d'urgència per obertura del llaç de fre", "Quan s'obre un llaç de seguretat el tren s'atura per frenada d'urgència o per tall de la tracció", "Per continuar cal anul·lar el llaç afectat, només amb la prèvia autorització del Centre de Comandament"]}, {"title": "Dotació mínima del tren", "text": "Descriu la dotació mínima d'un tren i indica la funció dels elements principals.", "ref": "Cap. 5 · Diap. 64–67", "pts": ["La dotació és el material reglamentari que es troba als armaris de la cabina i de passatge", "2 banderins (1 per cabina) per prestar el senyal manual de parada", "2 fanals (1 per cabina) per il·luminar en foscor i prestar el senyal manual de parada", "4 falques homologades per assegurar la immobilitat del tren", "2 aparells de radiotelefonia, 1 per cabina", "1 farmaciola i 1 escala-passera d'evacuació", "1 telèfon mòbil"]}, {"title": "Enclavaments creuats", "text": "Explica què són els enclavaments creuats i descriu-ne dos exemples: el canvi de sentit de la marxa i la circulació en ATP.", "ref": "Cap. 5 · Diap. 78–79 · Enclavaments creuats", "pts": ["Dispositius que fan que un element no funcioni o no es pugui manipular mentre l'altre no és en una posició determinada", "Canvi de sentit: cal una aturada total del tren", "Canvi de sentit: el manipulador ha d'estar en posició 0", "Si no es compleixen les dues condicions, no es pot seleccionar la marxa enrere des de l'inversor de marxa", "ATP: cal que el tren estigui aturat", "ATP: cal que les antenes d'ATP detectin els codis de via", "Si no es compleixen, no es pot seleccionar l'ATP des del panell d'ATP-ATO"]}, {"title": "Operacions fonamentals del maquinista", "text": "Descriu les quatre operacions fonamentals que ha de realitzar el maquinista i les actuacions que comprèn cadascuna.", "ref": "Cap. 5 · Diap. 80–82 · Operacions fonamentals", "pts": ["Posada en servei: operacions abans de demanar tracció; encendre la UT o locomotora", "Posada en servei: revisió general (caixa, departament de viatgers, enllumenat, climatització) i comprovació de portes, radiotelefonia, tracció i fre", "Conducció: moure o aturar el tren a les estacions, embarcament i desembarcament del passatge, control dels sistemes de seguretat", "Posada fora de servei: apagar la UT o locomotora i falcar el tren si cal", "Posada fora de servei: assegurar que ningú no autoritzat accedeixi al tren", "Avaria: observar els sistemes de diagnosi i seguir-ne les recomanacions, i parar atenció als indicadors de cabina", "Avaria: comunicar al CTC les avaries detectades"]}], "sec": {"1": "Bloc 1 · Sistemes principals", "2": "Bloc 2 · Locomotores i unitats de tren", "3": "Bloc 3 · Caixa i bastidor", "4": "Bloc 4 · Enganxalls i tipus de bogi", "5": "Bloc 5 · Parts del bogi", "6": "Bloc 6 · Suspensió, frens i accessoris del bogi", "7": "Bloc 7 · Numeració"}};
+  var Q = D.q, DEV = D.dev, SEC = D.sec, PASS = 7, PEN = 0.25, LET = ["A", "B", "C", "D"];
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+  function fmt(n, d) { d = d === undefined ? 2 : d; return n.toLocaleString("ca-ES", { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  var S = { mode: "exam", order: [], ans: {}, i: 0, confirm: false, done: false, filter: "fail" };
+
+  function show(name) {
+    ["home", "quiz", "result", "dev"].forEach(function (v) { $("v-" + v).hidden = v !== name; });
+    var isDev = name === "dev";
+    $("tab-test").setAttribute("aria-selected", String(!isDev));
+    $("tab-dev").setAttribute("aria-selected", String(isDev));
+    window.scrollTo(0, 0);
+  }
+  function home() {
+    $("btn-resume").hidden = !(S.order.length && !S.done);
+    show("home");
+  }
+
+  /* ---------- Inici ---------- */
+  var sel = $("sel-bloc");
+  var o0 = el("option", "", "Tots els blocs (" + Q.length + " preguntes)"); o0.value = "0"; sel.append(o0);
+  Object.keys(SEC).forEach(function (k) {
+    var n = Q.filter(function (q) { return q.sec === +k; }).length;
+    var o = el("option", "", SEC[k] + " (" + n + ")"); o.value = k; sel.append(o);
+  });
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function start(ids, mode, doShuffle) {
+    S.mode = mode; S.order = doShuffle ? shuffle(ids.slice()) : ids.slice(); S.ans = {}; S.i = 0; S.confirm = false; S.done = false;
+    show("quiz"); renderQ();
+  }
+  $("btn-start").onclick = function () {
+    var mode = document.querySelector("input[name=mode]:checked").value;
+    var b = +sel.value;
+    var ids = []; Q.forEach(function (q, i) { if (!b || q.sec === b) ids.push(i); });
+    var nq = +$("sel-n").value; if (nq && nq < ids.length) ids = shuffle(ids.slice()).slice(0, nq);
+    start(ids, mode, $("chk-shuffle").checked);
+  };
+  $("btn-resume").onclick = function () { show("quiz"); renderQ(); };
+
+  /* ---------- Test ---------- */
+  function whereBox(q) {
+    var d = el("div", "where");
+    var b = el("b", "", "On trobar-ho: ");
+    d.append(b, document.createTextNode(q.loc + "."));
+    return d;
+  }
+  function renderQ() {
+    var id = S.order[S.i], q = Q[id], total = S.order.length, given = S.ans[id];
+    $("q-count").textContent = "Pregunta " + (S.i + 1) + " de " + total;
+    $("q-sec").textContent = SEC[q.sec].split(" · ")[0];
+    $("q-bar").style.width = (Object.keys(S.ans).length / total * 100) + "%";
+    $("q-text").textContent = q.text;
+    var locked = S.mode === "study" && given !== undefined;
+    var box = $("q-opts"); box.replaceChildren();
+    q.opts.forEach(function (o, k) {
+      var b = el("button", "opt"); b.type = "button"; b.dataset.k = k;
+      b.append(el("span", "opt-l", LET[k]), el("span", "opt-t", o));
+      if (given === k) b.classList.add("sel");
+      if (locked) { if (k === q.ans) b.classList.add("ok"); else if (given === k) b.classList.add("bad"); b.disabled = true; }
+      box.append(b);
+    });
+    var fb = $("q-fb"); fb.replaceChildren(); fb.hidden = !locked;
+    if (locked) {
+      var good = given === q.ans;
+      fb.className = "fb " + (good ? "good" : "wrong");
+      fb.append(el("b", "", good ? "Correcte" : "Incorrecte. La resposta correcta és la " + LET[q.ans] + "."));
+      fb.append(el("p", "", q.expl));
+      fb.append(whereBox(q));
+    }
+    var grid = $("navgrid"); grid.replaceChildren();
+    S.order.forEach(function (qid, idx) {
+      var b = el("button", "nav-n", String(idx + 1)); b.type = "button"; b.dataset.i = idx;
+      b.setAttribute("aria-label", "Anar a la pregunta " + (idx + 1));
+      var a = S.ans[qid];
+      if (a !== undefined) {
+        if (S.mode === "study") b.classList.add(a === Q[qid].ans ? "ok" : "bad"); else b.classList.add("done");
+      }
+      if (idx === S.i) b.classList.add("cur");
+      grid.append(b);
+    });
+    $("btn-prev").disabled = S.i === 0;
+    $("btn-next").disabled = S.i === total - 1;
+    var un = total - Object.keys(S.ans).length;
+    $("confirm").hidden = !S.confirm;
+    if (S.confirm) $("confirm-t").textContent = "Tens " + un + (un === 1 ? " pregunta sense contestar" : " preguntes sense contestar") + ". Les que quedin en blanc valen 0 punts.";
+  }
+  $("q-opts").addEventListener("click", function (e) {
+    var b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    var id = S.order[S.i], k = +b.dataset.k;
+    if (S.mode === "exam" && S.ans[id] === k) delete S.ans[id]; else S.ans[id] = k;
+    S.confirm = false; renderQ();
+  });
+  $("navgrid").addEventListener("click", function (e) {
+    var b = e.target.closest(".nav-n"); if (!b) return; S.i = +b.dataset.i; S.confirm = false; renderQ(); window.scrollTo(0, 0);
+  });
+  $("btn-prev").onclick = function () { if (S.i > 0) { S.i--; S.confirm = false; renderQ(); window.scrollTo(0, 0); } };
+  $("btn-next").onclick = function () { if (S.i < S.order.length - 1) { S.i++; S.confirm = false; renderQ(); window.scrollTo(0, 0); } };
+  $("btn-home").onclick = home;
+  $("btn-back").onclick = function () { S.confirm = false; renderQ(); };
+  $("btn-finish").onclick = function () {
+    var un = S.order.length - Object.keys(S.ans).length;
+    if (un > 0 && !S.confirm) { S.confirm = true; renderQ(); $("confirm").scrollIntoView({ block: "center" }); return; }
+    finish();
+  };
+  $("btn-confirm").onclick = finish;
+
+  /* ---------- Resultat ---------- */
+  function compute() {
+    var r = { ok: 0, bad: 0, blank: 0, per: {}, N: S.order.length };
+    S.order.forEach(function (id) {
+      var q = Q[id], a = S.ans[id], p = r.per[q.sec] || (r.per[q.sec] = { ok: 0, n: 0 });
+      p.n++;
+      if (a === undefined) r.blank++; else if (a === q.ans) { r.ok++; p.ok++; } else r.bad++;
+    });
+    r.net = Math.max(0, r.ok - PEN * r.bad);
+    r.grade = r.net / r.N * 10;
+    r.pct = r.ok / r.N * 100;
+    r.need = PASS / 10 * r.N;
+    return r;
+  }
+  function finish() {
+    S.done = true; S.confirm = false; S.filter = "fail";
+    var r = compute();
+    var card = $("res-card"); card.replaceChildren();
+    var pass = r.grade >= PASS;
+    var g = el("div", "grade", fmt(r.grade)); g.append(el("small", "", " / 10"));
+    card.append(el("div", "label", S.mode === "exam" ? "Resultat de l'examen" : "Resultat del mode estudi"), g);
+    var pill = el("span", "pill " + (pass ? "pass" : "fail"), pass ? "Apte · mínim 7" : "No apte · cal un 7");
+    var pr = el("div", "row"); pr.append(pill);
+    card.append(pr);
+    var msg = pass
+      ? "Has superat el 7 amb " + fmt(r.net) + " punts nets de " + r.N + "."
+      : "Tens " + fmt(r.net) + " punts nets de " + r.N + ". Per arribar al 7 en calen " + fmt(r.need, 1) + ". Repassa els errors de sota i torna-ho a provar.";
+    card.append(el("p", "note", msg));
+    var st = el("div", "stats");
+    [["Encerts", String(r.ok)], ["Errors", String(r.bad)], ["En blanc", String(r.blank)], ["% d'encert", fmt(r.pct, 0) + " %"], ["Punts nets", fmt(r.net)]].forEach(function (x) {
+      var s = el("div", "stat"); s.append(el("span", "label", x[0]), el("b", "", x[1])); st.append(s);
+    });
+    card.append(st);
+    card.append(el("p", "note", "Nota = (encerts − 0,25 × errors) ÷ " + r.N + " × 10"));
+    var bars = $("res-bars"); bars.replaceChildren();
+    Object.keys(r.per).sort().forEach(function (k) {
+      var p = r.per[k], pc = p.ok / p.n * 100;
+      var w = el("div"), h = el("div", "bar-h");
+      h.append(el("span", "", SEC[k].split(" · ")[1] || SEC[k]), el("b", "", p.ok + " / " + p.n));
+      var b = el("div", "bar " + (pc < 50 ? "low" : pc < 75 ? "mid" : "")); var i = el("i"); i.style.width = pc + "%"; b.append(i);
+      w.append(h, b); bars.append(w);
+    });
+    $("btn-retry").hidden = (r.bad + r.blank) === 0;
+    renderReview();
+    show("result");
+  }
+  function renderReview() {
+    var list = $("res-list"); list.replaceChildren();
+    document.querySelectorAll("#res-filter .chip").forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.f === S.filter)); });
+    var shown = 0;
+    S.order.forEach(function (id, idx) {
+      var q = Q[id], a = S.ans[id];
+      var st = a === undefined ? "blank" : a === q.ans ? "ok" : "bad";
+      if (S.filter === "fail" && st === "ok") return;
+      if (S.filter === "ok" && st !== "ok") return;
+      shown++;
+      var it = el("article", "rev-item" + (st === "ok" ? " okk" : st === "blank" ? " blk" : ""));
+      var tag = el("div", "tag", (idx + 1) + ". " + (st === "ok" ? "Correcta" : st === "blank" ? "Sense resposta" : "Error"));
+      tag.style.color = st === "ok" ? "var(--ok)" : st === "blank" ? "var(--warn)" : "var(--bad)";
+      it.append(tag, el("div", "qt", q.text));
+      if (st === "bad") { var y = el("div", "ans"); y.append(el("span", "no", "La teva resposta: "), document.createTextNode(LET[a] + ") " + q.opts[a])); it.append(y); }
+      var c = el("div", "ans"); c.append(el("span", "yes", "Resposta correcta: "), document.createTextNode(LET[q.ans] + ") " + q.opts[q.ans])); it.append(c);
+      it.append(el("p", "ans", q.expl), whereBox(q));
+      list.append(it);
+    });
+    if (!shown) list.append(el("div", "card", S.filter === "fail" ? "No tens cap error ni cap pregunta en blanc. Molt bé." : "No hi ha preguntes en aquest filtre."));
+  }
+  $("res-filter").addEventListener("click", function (e) { var c = e.target.closest(".chip"); if (!c) return; S.filter = c.dataset.f; renderReview(); });
+  $("btn-retry").onclick = function () {
+    var ids = S.order.filter(function (id) { return S.ans[id] !== Q[id].ans; });
+    start(ids, "study", true);
+  };
+  $("btn-new").onclick = function () { S.order = []; S.done = false; home(); };
+
+  /* ---------- Desenvolupament ---------- */
+  var dl = $("dev-list");
+  DEV.forEach(function (d, i) {
+    var c = el("section", "card stack");
+    c.append(el("div", "label", "Pregunta " + (i + 1) + " · 10 punts"), el("h3", "", d.title), el("p", "", d.text));
+    var ta = el("textarea"); ta.id = "dev-ta-" + i; ta.placeholder = "Escriu aquí la teva resposta…"; ta.setAttribute("aria-label", "Resposta a la pregunta " + (i + 1));
+    var btn = el("button", "btn ghost", "Mostra la resposta model"); btn.type = "button";
+    var model = el("div", "model"); model.hidden = true;
+    model.append(el("b", "", "Punts clau"));
+    var ul = el("ul"); d.pts.forEach(function (p) { ul.append(el("li", "", p)); }); model.append(ul);
+    model.append(el("p", "dev-ref", "On trobar-ho: " + d.ref + "."));
+    btn.onclick = function () { model.hidden = !model.hidden; btn.textContent = model.hidden ? "Mostra la resposta model" : "Amaga la resposta model"; };
+    c.append(ta, btn, model); dl.append(c);
+  });
+
+  $("tab-test").onclick = home;
+  $("tab-dev").onclick = function () { show("dev"); };
+  home();
+})();
+</script>
